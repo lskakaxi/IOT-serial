@@ -121,6 +121,7 @@ int serial_read(int fd, char *buf, int bufsize)
     return read(fd, buf, bufsize);
 }
 
+#ifdef TEST_STANDALONE
 int main(void)
 {
     int fd;
@@ -147,4 +148,4 @@ int main(void)
     }
     return 0;
 }
-
+#endif
