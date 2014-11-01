@@ -5,6 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <errno.h>
+#include "protocol.h"
+#include "serial.h"
 
 static char *serial_path;
 static int sock;
@@ -26,7 +29,7 @@ void print_hex(unsigned char *hex, int size)
     printf("\n");
 }
 
-void send_ack(char *recv_buf, int is_good, int error)
+void send_ack(unsigned char *recv_buf, int is_good, int error)
 {
     int sent;
     struct hdr *hdr = (struct hdr *)recv_buf;
@@ -37,27 +40,24 @@ void send_ack(char *recv_buf, int is_good, int error)
     hdr->type = ACK;
     hdr->length = sizeof(struct ack);
     if (is_good) {
-        ack->ack = ACK_OK;
+        hdr->type = ACK_OK;
         ack->error = 0;
     } else {
-        ack->ack = ACK_NACK;
+        hdr->type = ACK_NACK;
         ack->error = errno;
     }
     sent = send(sock, recv_buf, hdr->length + HEADER_SIZE, 0);
-    print_hex(buffer, sent);
+    print_hex(recv_buf, sent);
     if (sent != hdr->length + HEADER_SIZE)
         Die("Ack OPEN_SERIAL cmd error!\n");
 }
 
 int main(int argc, char *argv[]) {
     struct sockaddr_in net_serial_server;
-    char buffer[BUFFSIZE];
-    unsigned int echolen;
+    unsigned char buffer[BUFFSIZE];
     int received = 0, sent = 0;
-    unsigned int offload_size;
     struct hdr *hdr;
     struct ack_status serial_status;
-    struct ack *ack;
     int ret;
 
     if (argc != 4) {
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
         switch (hdr->type) {
             case GET_STATUS:
                 printf("GET_STATUS\n");
-                strncmp(serial_status.serial_path, serial_path, SERIAL_PATH_SIZE);
+                strncpy(serial_status.serial_path, serial_path, SERIAL_PATH_SIZE);
                 serial_get_status(&serial_status);
                 memcpy(hdr->byte, &serial_status, sizeof(serial_status));
                 hdr->length = sizeof(serial_status);

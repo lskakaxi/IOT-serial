@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
+#include "protocol.h"
 
 #define SERIAL_PATH "/dev/ttyS0"
 static int serial_fd;

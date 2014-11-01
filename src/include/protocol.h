@@ -1,4 +1,5 @@
 #ifndef _PROTOCOL_H
+#define _PROTOCOL_H
 
 #define HEADER_SIZE 6
 #define SERIAL_PATH_SIZE 64
