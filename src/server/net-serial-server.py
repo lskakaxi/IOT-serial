@@ -100,9 +100,9 @@ class SerialClientRequestHandler(SocketServer.BaseRequestHandler):
                     struct.unpack("={}sIBBBB".format(SERIAL_PATH_SIZE), status_ack);
             Log('client [' + str(self.client_address) +
                 '] status: baud[' + str(baud) + '] csize[' + str(csize) + '] parity[' +
-                str(parity) + '] stopbits[' + str(stopbits) + '] is_open[' + str(is_open));
+                str(parity) + '] stopbits[' + str(stopbits) + '] is_open[' + str(is_open) + ']');
             keystr = str(self.client_address) + ":" + serial_path;
-            action_request[keystr] = Queue(20);
+            action_request[keystr] = Queue.Queue(20);
             # main loop to process action
             while True:
                 action = action_request[keystr].get();
@@ -128,7 +128,6 @@ class SerialClientRequestHandler(SocketServer.BaseRequestHandler):
             #client_db.insert(self.request.client_address, (serial_path, baud, csize, parity, stopbits, is_open));
         except socket.timeout:
             LogE('client ' + str(self.client_address) + ' timeout!!');
-            break;
 
     def finish(self):
         self.request.close();
