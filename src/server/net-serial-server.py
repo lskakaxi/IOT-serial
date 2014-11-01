@@ -8,6 +8,7 @@ import os,sys
 import logging
 import struct
 import time
+import Queue
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s',
@@ -33,9 +34,10 @@ struct.unpack fmt str: "=HI"
 
 hdr.length = 1
 struct ack_ {
+    unsigned char ack;
     unsigned char error;
 };
-struct.unpack fmt str: "=B"
+struct.unpack fmt str: "=BB"
 
 hdr.length = 72
 strcut ack_status {
@@ -57,6 +59,8 @@ WRITE_SERIAL =  5;
 CLOSE_SERIAL =  6;
 RESET_TERMINAL =0xffff;
 
+action_request = {};
+
 def LogTemplate(s):
     return '[' + threading.current_thread().name + ']: ' + str(s);
 
@@ -72,6 +76,7 @@ def LogE(s):
 
 
 class SerialClientRequestHandler(SocketServer.BaseRequestHandler):
+    keystr = "";
 
     def setup(self):
         # set timeout to 30s
@@ -82,12 +87,11 @@ class SerialClientRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         cur_thread = threading.current_thread();
         try:
-            # main loop to process protocol
+            # get status
             hdr = struct.pack("=HI", GET_STATUS, 0);
             self.request.send(hdr);
             status_ack_hdr = self.request.recv(HEADER_SIZE);
             (type, length) = struct.unpack("=HI", status_ack_hdr);
-            print repr(status_ack_hdr), type, length
             if type != GET_STATUS or length != GET_STATUS_SIZE:
                 LogE('Unexcepted data received! Invalid client!');
                 return;
@@ -95,13 +99,36 @@ class SerialClientRequestHandler(SocketServer.BaseRequestHandler):
             (serial_path, baud, csize, parity, stopbits, is_open) = \
                     struct.unpack("={}sIBBBB".format(SERIAL_PATH_SIZE), status_ack);
             Log('client [' + str(self.client_address) +
-                     '] status: baud[' + str(baud) + '] csize[' + str(csize) + '] parity[' +
-                     str(parity) + '] stopbits[' + str(stopbits) + '] is_open[' + str(is_open));
+                '] status: baud[' + str(baud) + '] csize[' + str(csize) + '] parity[' +
+                str(parity) + '] stopbits[' + str(stopbits) + '] is_open[' + str(is_open));
+            keystr = str(self.client_address) + ":" + serial_path;
+            action_request[keystr] = Queue(20);
+            # main loop to process action
+            while True:
+                action = action_request[keystr].get();
+                # open serial
+                if action == "OPEN":
+                    pass
+                # setup serial
+                elif action[:5] == "SETUP":
+                    pass
+                # read serial
+                elif action == "READ":
+                    pass
+                # write serial
+                elif action[:5] == "WRITE":
+                    pass
+                # close serial
+                elif action == "CLOSE":
+                    pass
+                else:
+                    break;
             hdr = struct.pack("=HI", RESET_TERMINAL, 0);
             Log('Close client' + str(self.client_address));
             #client_db.insert(self.request.client_address, (serial_path, baud, csize, parity, stopbits, is_open));
         except socket.timeout:
             LogE('client ' + str(self.client_address) + ' timeout!!');
+            break;
 
     def finish(self):
         self.request.close();

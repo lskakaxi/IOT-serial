@@ -71,6 +71,39 @@ void serial_setup_default(int fd)
     serial_set_parity(fd, 0);
 }
 
+void serial_setup(struct ack_status *status)
+{
+    if (!serial_fd) {
+        return;
+    }
+    serial_set_baud(serial_fd, status->baud);
+    serial_set_csize(serial_fd, status->csize);
+    serial_set_stopbits(serial_fd, status->stopbits);
+    serial_set_parity(serial_fd, status->parity);
+}
+
+void serial_get_status(struct ack_status *status)
+{
+    if (!serial_fd) {
+        status->is_open = 0;
+        return;
+    }
+    status->is_open = 1;
+    status->baud = cfgetispeed(&curr_options);
+    status->csize = curr_options.c_cflag & CSIZE;
+    if (curr_options.c_cflag & PARENB &&
+            curr_options.c_cflag & PARODD)
+        status->parity = 2;
+    else if (curr_options.c_cflag & PARENB)
+        status->parity = 1;
+    else
+        status->parity = 0;
+    if (curr_options.c_cflag & CSTOPB)
+        status->stopbits = 2;
+    else
+        status->stopbits = 1;
+}
+
 int serial_open(const char *path)
 {
     if (serial_fd) {
@@ -105,20 +138,20 @@ int serial_open(const char *path)
     return serial_fd;
 }
 
-void serial_close(int fd)
+void serial_close(void)
 {
-    close(fd);
+    close(serial_fd);
     serial_fd = 0;
 }
 
-int serial_write(int fd, char *buf, int size)
+int serial_write(char *buf, int size)
 {
-    return write(fd, buf, size);
+    return write(serial_fd, buf, size);
 }
 
-int serial_read(int fd, char *buf, int bufsize)
+int serial_read(char *buf, int bufsize)
 {
-    return read(fd, buf, bufsize);
+    return read(serial_fd, buf, bufsize);
 }
 
 #ifdef TEST_STANDALONE
